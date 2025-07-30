@@ -751,7 +751,7 @@ require('lazy').setup({
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
         clangd = {},
-        gopls = {},
+        --gopls = {},
         buf_ls = {
           cmd = { 'buf-language-server', 'serve' },
           filetypes = { 'proto' },
@@ -765,7 +765,7 @@ require('lazy').setup({
         --  cmd = { 'cmake-language-server' },
         -- no extra settings needed by default
         --},
-        pyright = {},
+        --pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
