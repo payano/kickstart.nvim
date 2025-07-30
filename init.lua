@@ -166,6 +166,11 @@ vim.o.scrolloff = 10
 -- See `:help 'confirm'`
 vim.o.confirm = true
 
+vim.opt.expandtab = true -- Use spaces, not tabs
+vim.opt.shiftwidth = 4 -- Size of an indent
+vim.opt.tabstop = 4 -- Width of a Tab character
+vim.opt.softtabstop = 4 -- Tabs in insert mode insert 4 spaces
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
@@ -204,6 +209,54 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 -- vim.keymap.set("n", "<C-S-l>", "<C-w>L", { desc = "Move window to the right" })
 -- vim.keymap.set("n", "<C-S-j>", "<C-w>J", { desc = "Move window to the lower" })
 -- vim.keymap.set("n", "<C-S-k>", "<C-w>K", { desc = "Move window to the upper" })
+
+-- Git status (changed files) via Telescope
+vim.keymap.set('n', '<leader>gs', function()
+  require('telescope.builtin').git_status()
+end, { desc = 'Git: Status (changed files)', silent = true })
+
+-- Diff current buffer (and clear)
+vim.keymap.set('n', '<leader>gd', '<cmd>Gitsigns diffthis<CR>', { desc = 'Git: Diff this buffer', silent = true })
+vim.keymap.set('n', '<leader>gD', '<cmd>Gitsigns diffthis ~<CR>', { desc = 'Git: Clear buffer diff', silent = true })
+
+-- Stage / undo hunks via gitsigns
+vim.keymap.set('n', '<leader>gh', '<cmd>Gitsigns stage_hunk<CR>', { desc = 'Git: Stage hunk', silent = true })
+vim.keymap.set('n', '<leader>gu', '<cmd>Gitsigns undo_stage_hunk<CR>', { desc = 'Git: Undo stage hunk', silent = true })
+
+-- Stage / reset entire buffer via gitsigns
+vim.keymap.set('n', '<leader>gS', '<cmd>Gitsigns stage_buffer<CR>', { desc = 'Git: Stage buffer', silent = true })
+vim.keymap.set('n', '<leader>gR', '<cmd>Gitsigns reset_buffer<CR>', { desc = 'Git: Reset buffer', silent = true })
+
+-- Preview hunk
+vim.keymap.set('n', '<leader>ghp', '<cmd>Gitsigns preview_hunk<CR>', { desc = 'Git: Preview hunk', silent = true })
+
+-- Blame
+vim.keymap.set('n', '<leader>gb', '<cmd>Gitsigns blame_line<CR>', { desc = 'Git: Blame line', silent = true })
+vim.keymap.set('n', '<leader>gB', '<cmd>Gitsigns toggle_current_line_blame<CR>', { desc = 'Git: Toggle inline blame', silent = true })
+
+-- Add (stage) files via direct Git
+vim.keymap.set('n', '<leader>ga', '<cmd>!git add %<CR><cmd>redraw!<CR>', { desc = 'Git: Add current file', silent = true })
+vim.keymap.set('n', '<leader>gA', '<cmd>!git add .<CR><cmd>redraw!<CR>', { desc = 'Git: Add all files', silent = true })
+
+-- Commit / amend via direct Git
+vim.keymap.set('n', '<leader>gc', '<cmd>split | term git commit<CR>', { desc = 'Git: Commit', silent = true })
+vim.keymap.set('n', '<leader>gC', '<cmd>split | term git commit --amend<CR>', { desc = 'Git: Amend last commit', silent = true })
+
+-- Push / Pull via direct Git
+vim.keymap.set('n', '<leader>gp', '<cmd>!git push<CR><cmd>redraw!<CR>', { desc = 'Git: Push', silent = true })
+vim.keymap.set('n', '<leader>gP', '<cmd>!git pull<CR><cmd>redraw!<CR>', { desc = 'Git: Pull', silent = true })
+
+-- Repo‑wide log / file log via Telescope
+vim.keymap.set('n', '<leader>gl', function()
+  require('telescope.builtin').git_commits()
+end, { desc = 'Git: Log (all commits)', silent = true })
+
+vim.keymap.set('n', '<leader>gL', function()
+  require('telescope.builtin').git_bcommits()
+end, { desc = 'Git: Log (this file)', silent = true })
+
+-- (Optional) Open file on remote if you have a CLI (like `gh`) that supports it:
+vim.keymap.set('n', '<leader>go', '<cmd>!gh repo view --web<CR>', { desc = 'Git: Open repo in browser', silent = true })
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
@@ -255,6 +308,32 @@ require('lazy').setup({
   --
   -- Use `opts = {}` to automatically pass options to a plugin's `setup()` function, forcing the plugin to be loaded.
   --
+  -- Protobuf syntax & indent
+  {
+    'uarun/vim-protobuf',
+    ft = { 'proto' },
+  },
+
+  {
+    'pyright-langserver/pyright',
+    ft = { 'python' },
+    config = function()
+      require('lspconfig').pyright.setup {}
+    end,
+  },
+
+  -- 2) Tell nvim-treesitter to install the `proto` parser
+  {
+    'nvim-treesitter/nvim-treesitter',
+    opts = {
+      ensure_installed = {
+        -- … your other languages …
+        'proto',
+      },
+      highlight = { enable = true },
+      indent = { enable = true },
+    },
+  },
 
   -- Alternatively, use `config = function() ... end` for full control over the configuration.
   -- If you prefer to call `setup` explicitly, use:
@@ -671,9 +750,22 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
-        -- clangd = {},
-        -- gopls = {},
-        -- pyright = {},
+        clangd = {},
+        gopls = {},
+        buf_ls = {
+          cmd = { 'buf-language-server', 'serve' },
+          filetypes = { 'proto' },
+          root_dir = require('lspconfig.util').root_pattern('buf.yaml', '.git'),
+          settings = {
+            -- any buf-specific settings
+          },
+        },
+        --cmake = {
+        --  filetypes = { 'cmake' },
+        --  cmd = { 'cmake-language-server' },
+        -- no extra settings needed by default
+        --},
+        pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -768,6 +860,9 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        cpp = { 'clang_format' },
+        c = { 'clang_format' },
+        hpp = { 'clang_format' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
