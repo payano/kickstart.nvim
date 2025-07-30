@@ -314,13 +314,13 @@ require('lazy').setup({
     ft = { 'proto' },
   },
 
-  {
-    'pyright-langserver/pyright',
-    ft = { 'python' },
-    config = function()
-      require('lspconfig').pyright.setup {}
-    end,
-  },
+  --  {
+  --    'pyright-langserver/pyright',
+  --    ft = { 'python' },
+  --    config = function()
+  --      require('lspconfig').pyright.setup {}
+  --    end,
+  --  },
 
   -- 2) Tell nvim-treesitter to install the `proto` parser
   {
