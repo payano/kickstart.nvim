@@ -325,6 +325,7 @@ require('lazy').setup({
       'hrsh7th/cmp-nvim-lsp', -- LSP source
       'hrsh7th/cmp-buffer', -- buffer words
       'hrsh7th/cmp-path', -- file paths
+      'zbirenbaum/copilot-cmp',
       -- add other cmp sources you want…
     },
     config = function()
@@ -345,21 +346,19 @@ require('lazy').setup({
           end,
         },
 
-        mapping = cmp.mapping({
+        mapping = cmp.mapping.preset.insert {
           ['<CR>'] = cmp.mapping.confirm { select = true },
 
+          -- Tab/S-Tab only navigate or indent/jump, never confirm
           ['<Tab>'] = function(fallback)
             if cmp.visible() then
               cmp.select_next_item()
             elseif luasnip.expand_or_jumpable() then
               luasnip.expand_or_jump()
-            elseif has_words_before() then
-              cmp.complete()
             else
-              fallback() -- real indent
+              fallback()
             end
           end,
-
           ['<S-Tab>'] = function(fallback)
             if cmp.visible() then
               cmp.select_prev_item()
@@ -370,18 +369,18 @@ require('lazy').setup({
             end
           end,
 
-          ['<C-l>'] = function(fallback)
+          -- <C-l> only accepts Copilot (popup or ghost)
+          ['<C-l>'] = cmp.mapping(function(fallback)
             local entry = cmp.get_selected_entry()
             if entry and entry.source.name == 'copilot' then
-              cmp.confirm { select = true } -- accept selected Copilot item
+              cmp.confirm { select = true }
             elseif copilot_sugg.is_visible() then
-              copilot_sugg.accept() -- accept inline Copilot ghost-text
+              copilot_sugg.accept()
             else
               fallback()
             end
-          end,
-        }, { 'i', 's' }),
-
+          end, { 'i', 's' }),
+        },
         sources = cmp.config.sources {
           { name = 'nvim_lsp' },
           { name = 'buffer' },
