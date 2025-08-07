@@ -210,6 +210,9 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 -- vim.keymap.set("n", "<C-S-j>", "<C-w>J", { desc = "Move window to the lower" })
 -- vim.keymap.set("n", "<C-S-k>", "<C-w>K", { desc = "Move window to the upper" })
 
+-- restore Esc in insert mode to always fall back to Normal
+vim.keymap.set('i', '<Esc>', '<Esc>', { noremap = true, silent = true })
+
 -- Git status (changed files) via Telescope
 vim.keymap.set('n', '<leader>gs', function()
   require('telescope.builtin').git_status()
@@ -314,13 +317,125 @@ require('lazy').setup({
     ft = { 'proto' },
   },
 
+  -- 1) Core nvim-cmp engine
   {
-    'pyright-langserver/pyright',
-    ft = { 'python' },
+    'hrsh7th/nvim-cmp',
+    event = 'InsertEnter',
+    dependencies = {
+      'hrsh7th/cmp-nvim-lsp', -- LSP source
+      'hrsh7th/cmp-buffer', -- buffer words
+      'hrsh7th/cmp-path', -- file paths
+      -- add other cmp sources you want…
+    },
     config = function()
-      require('lspconfig').pyright.setup {}
+      local cmp = require 'cmp'
+      local luasnip = require 'luasnip'
+      local copilot_sugg = require 'copilot.suggestion'
+
+      -- helper: check if there is a non-blank char before cursor
+      local has_words_before = function()
+        local line, col = unpack(vim.api.nvim_win_get_cursor(0))
+        return col ~= 0 and vim.api.nvim_buf_get_text(0, line - 1, col - 1, line - 1, col, {})[1]:match '%s' == nil
+      end
+
+      cmp.setup {
+        snippet = {
+          expand = function(args)
+            luasnip.lsp_expand(args.body)
+          end,
+        },
+
+        mapping = cmp.mapping({
+          ['<CR>'] = cmp.mapping.confirm { select = true },
+
+          ['<Tab>'] = function(fallback)
+            if cmp.visible() then
+              cmp.select_next_item()
+            elseif luasnip.expand_or_jumpable() then
+              luasnip.expand_or_jump()
+            elseif has_words_before() then
+              cmp.complete()
+            else
+              fallback() -- real indent
+            end
+          end,
+
+          ['<S-Tab>'] = function(fallback)
+            if cmp.visible() then
+              cmp.select_prev_item()
+            elseif luasnip.jumpable(-1) then
+              luasnip.jump(-1)
+            else
+              fallback()
+            end
+          end,
+
+          ['<C-l>'] = function(fallback)
+            local entry = cmp.get_selected_entry()
+            if entry and entry.source.name == 'copilot' then
+              cmp.confirm { select = true } -- accept selected Copilot item
+            elseif copilot_sugg.is_visible() then
+              copilot_sugg.accept() -- accept inline Copilot ghost-text
+            else
+              fallback()
+            end
+          end,
+        }, { 'i', 's' }),
+
+        sources = cmp.config.sources {
+          { name = 'nvim_lsp' },
+          { name = 'buffer' },
+          { name = 'path' },
+          { name = 'copilot', group_index = 2 },
+        },
+      }
     end,
   },
+
+  {
+    -- 1) Copilot core
+    'zbirenbaum/copilot.lua',
+    cmd = 'Copilot', -- load on demand
+    event = 'InsertEnter',
+    opts = {
+      panel = { enabled = false },
+      suggestion = {
+        enabled = true,
+        auto_trigger = true,
+        keymap = {
+          accept = '<C-l>',
+          next = '<C-]>',
+          prev = '<C-[>',
+        },
+      },
+      filetypes = {
+        markdown = true,
+        python = true,
+        cpp = true,
+        -- add your filetypes…
+      },
+    },
+
+    -- 2) Bridge into nvim‑cmp
+    dependencies = {
+      'zbirenbaum/copilot-cmp',
+    },
+    config = function(_, opts)
+      require('copilot').setup(opts)
+      -- attach copilot to blink.cmp
+      require('copilot_cmp').setup {
+        method = 'getCompletionsCycling', -- or 'getCompletions'
+      }
+    end,
+  },
+
+  --{
+  --  'pyright-langserver/pyright',
+  --  ft = { 'python' },
+  --  config = function()
+  --    require('lspconfig').pyright.setup {}
+  --  end,
+  --},
 
   -- 2) Tell nvim-treesitter to install the `proto` parser
   {
@@ -328,6 +443,7 @@ require('lazy').setup({
     opts = {
       ensure_installed = {
         -- … your other languages …
+        'cmake',
         'proto',
       },
       highlight = { enable = true },
@@ -760,11 +876,11 @@ require('lazy').setup({
             -- any buf-specific settings
           },
         },
-        --cmake = {
-        --  filetypes = { 'cmake' },
-        --  cmd = { 'cmake-language-server' },
-        -- no extra settings needed by default
-        --},
+        cmake = {
+          filetypes = { 'cmake' },
+          cmd = { 'cmake-language-server' },
+          -- no extra settings needed by default
+        },
         pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
@@ -863,6 +979,7 @@ require('lazy').setup({
         cpp = { 'clang_format' },
         c = { 'clang_format' },
         hpp = { 'clang_format' },
+        cmake = { 'cmake_format' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
@@ -1068,7 +1185,7 @@ require('lazy').setup({
   --  Here are some example plugins that I've included in the Kickstart repository.
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
-  -- require 'kickstart.plugins.debug',
+  require 'kickstart.plugins.debug',
   -- require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
   -- require 'kickstart.plugins.autopairs',
