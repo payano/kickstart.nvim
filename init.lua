@@ -408,7 +408,7 @@ require('lazy').setup({
     event = 'InsertEnter',
     opts = {
       panel = { enabled = false },
-      suggestion = { enabled = true, auto_trigger = true, keymap = { accept = '<C-l>', next = '<C-]>', prev = '<C-[>' } },
+      suggestion = { enabled = true, auto_trigger = true, keymap = { accept = '<C-l>', next = '<C-p>', prev = '<C-o>' } },
       filetypes = { markdown = true, python = true, cpp = true },
     },
     config = function(_, opts)
