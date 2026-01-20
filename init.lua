@@ -79,6 +79,10 @@ vim.keymap.set('n', '<leader>gL', function()
 end, { desc = 'Git: Log (file)', silent = true })
 vim.keymap.set('n', '<leader>go', '<cmd>!gh repo view --web<CR>', { desc = 'Git: Open repo in browser', silent = true })
 
+-- init.lua
+vim.keymap.set({ 'n', 'x', 'o' }, 'ö', '{', { desc = 'Prev paragraph' })
+vim.keymap.set({ 'n', 'x', 'o' }, 'ä', '}', { desc = 'Next paragraph' })
+
 -- Yank highlight
 vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight when yanking (copying) text',
